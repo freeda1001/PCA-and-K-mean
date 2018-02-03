@@ -1,0 +1,238 @@
+# PCA-and-K-mean
+rm(list=ls())
+library(data.table)
+
+#Question 1
+
+context1 <- fread('WAGE1.csv')
+# storage   display    value
+# variable name   type    format     label      variable label
+# ---------------------------------------------------------------------------------------------------
+# wage            float   %8.2g                 average hourly earnings
+# educ            byte    %8.0g                 years of education
+# exper           byte    %8.0g                 years potential experience
+# tenure          byte    %8.0g                 years with current employer
+# nonwhite        byte    %8.0g                 =1 if nonwhite
+# female          byte    %8.0g                 =1 if female
+# married         byte    %8.0g                 =1 if married
+# numdep          byte    %8.0g                 number of dependents
+# smsa            byte    %8.0g                 =1 if live in SMSA
+# northcen        byte    %8.0g                 =1 if live in north central U.S
+# south           byte    %8.0g                 =1 if live in southern region
+# west            byte    %8.0g                 =1 if live in western region
+# construc        byte    %8.0g                 =1 if work in construc. indus.
+# ndurman         byte    %8.0g                 =1 if in nondur. manuf. indus.
+# trcommpu        byte    %8.0g                 =1 if in trans, commun, pub ut
+# trade           byte    %8.0g                 =1 if in wholesale or retail
+# services        byte    %8.0g                 =1 if in services indus.
+# profserv        byte    %8.0g                 =1 if in prof. serv. indus.
+# profocc         byte    %8.0g                 =1 if in profess. occupation
+# clerocc         byte    %8.0g                 =1 if in clerical occupation
+# servocc         byte    %8.0g                 =1 if in service occupation
+seed <- 2
+maxCluster <- 10
+
+wss <- rep(-1,maxCluster)
+for (i in 1: maxCluster){
+     set.seed(seed)
+     model <- kmeans(context1,centers = i, nstart = 10 )
+     wss[i] <- model$tot.withinss
+  
+} 
+plot(1:maxCluster, wss, type = 'b',
+     xlab = 'Number of Clusters',
+     ylab = 'Aggregate Within Group SS')
+
+set.seed(seed)
+model1 <- kmeans(context1, centers = 3, nstart = 10)
+model1$centers
+# wage     educ     exper    tenure   nonwhite    female   married    numdep      smsa  northcen     south      west
+# 1 5.900926 10.96296 38.777778 11.657407 0.10185185 0.4629630 0.7500000 0.5740741 0.6388889 0.2962963 0.3333333 0.1574074
+# 2 5.206958 13.12548  5.946768  1.699620 0.09885932 0.5133080 0.4486692 0.8897338 0.7870722 0.2775665 0.3155894 0.1596958
+# 3 7.105806 12.72258 20.638710  6.316129 0.10967742 0.4322581 0.7806452 1.6322581 0.6709677 0.1741935 0.4387097 0.1935484
+# construc    ndurman   trcommpu     trade   services  profserv   profocc   clerocc    servocc
+# 1 0.01851852 0.14814815 0.03703704 0.2222222 0.12037037 0.2500000 0.3240741 0.1203704 0.13888889
+# 2 0.06083650 0.07604563 0.05323194 0.3193916 0.09505703 0.2699620 0.3498099 0.1863118 0.17110266
+# 3 0.03870968 0.15483871 0.03225806 0.2774194 0.09677419 0.2451613 0.4258065 0.1677419 0.09032258
+group1 <- model1$cluster
+table(group1)
+# group1
+# 1   2   3 
+# 108 263 155 
+context1$cluster <- group1
+model2 <- lm(wage~educ+exper+tenure, data = context1[cluster==1])
+model3 <- lm(wage~educ+exper+tenure, data = context1[cluster==2])
+model4 <- lm(wage~educ+exper+tenure, data = context1[cluster==3])
+summary(model2)
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -6.4894 -2.0198 -0.5852  1.2467 14.4291 
+# Coefficients:
+#              Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)  3.78799    2.83502   1.336 0.184419    
+# educ         0.40735    0.10276   3.964 0.000135 ***
+# exper       -0.10172    0.05851  -1.739 0.085077 .  
+# tenure       0.13653    0.03098   4.407 2.55e-05 ***
+#   ---
+#   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# 
+# Residual standard error: 3.292 on 104 degrees of freedom
+# Multiple R-squared:  0.3365,	Adjusted R-squared:  0.3174 
+# F-statistic: 17.58 on 3 and 104 DF,  p-value: 2.628e-09
+summary(model3)
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -3.7853 -1.2968 -0.3433  0.6621 12.0409 
+# Coefficients:
+#              Estimate Std. Error t value Pr(>|t|)    
+# (Intercept) -3.21053    0.81295  -3.949 0.000101 ***
+# educ         0.52524    0.06025   8.717 3.49e-16 ***
+# exper        0.17286    0.03806   4.542 8.55e-06 ***
+# tenure       0.29156    0.06613   4.409 1.52e-05 ***
+#   ---
+#   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# 
+# Residual standard error: 2.278 on 259 degrees of freedom
+# Multiple R-squared:  0.3765,	Adjusted R-squared:  0.3693 
+# F-statistic: 52.14 on 3 and 259 DF,  p-value: < 2.2e-16
+summary(model4)
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -9.6701 -2.2514 -0.5411  1.6947 13.8507 
+# Coefficients:
+#              Estimate Std. Error t value Pr(>|t|)    
+# (Intercept) -4.85740    2.03152  -2.391    0.018 *  
+# educ         0.73631    0.11888   6.194 5.30e-09 ***
+# exper        0.05905    0.05871   1.006    0.316    
+# tenure       0.21796    0.04655   4.683 6.26e-06 ***
+#   ---
+# Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# 
+# Residual standard error: 3.755 on 151 degrees of freedom
+# Multiple R-squared:  0.2939,	Adjusted R-squared:  0.2798 
+# F-statistic: 20.95 on 3 and 151 DF,  p-value: 2.118e-11
+
+
+#Question 2
+library(expm)
+library(tseries)
+context2 <- fread('ffportfolios.csv')
+kpss.test(context2$Portfolio1, null = 'Level')
+# data:  context2$Portfolio1
+# KPSS Level = 0.036977, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio2, null = 'Level')
+# data:  context2$Portfolio2
+# KPSS Level = 0.038798, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio3, null = 'Level')
+# data:  context2$Portfolio3
+# KPSS Level = 0.027927, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio4, null = 'Level')
+# data:  context2$Portfolio4
+# KPSS Level = 0.030573, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio5, null = 'Level')
+# data:  context2$Portfolio5
+# KPSS Level = 0.045637, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio6, null = 'Level')
+# data:  context2$Portfolio6
+# KPSS Level = 0.026175, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio7, null = 'Level')
+# data:  context2$Portfolio7
+# KPSS Level = 0.061349, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio8, null = 'Level')
+# data:  context2$Portfolio8
+# KPSS Level = 0.073024, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio9, null = 'Level')
+# data:  context2$Portfolio9
+# KPSS Level = 0.051092, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio10, null = 'Level')
+# data:  context2$Portfolio10
+# KPSS Level = 0.039357, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio11, null = 'Level')
+# data:  context2$Portfolio11
+# KPSS Level = 0.10083, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio12, null = 'Level')
+# data:  context2$Portfolio12
+# KPSS Level = 0.16275, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio13, null = 'Level')
+# data:  context2$Portfolio13
+# KPSS Level = 0.12389, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio14, null = 'Level')
+# data:  context2$Portfolio14
+# KPSS Level = 0.11701, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio15, null = 'Level')
+# data:  context2$Portfolio15
+# KPSS Level = 0.12745, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio16, null = 'Level')
+# data:  context2$Portfolio16
+# KPSS Level = 0.13014, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio17, null = 'Level')
+# data:  context2$Portfolio17
+# KPSS Level = 0.17409, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio18, null = 'Level')
+# data:  context2$Portfolio18
+# KPSS Level = 0.028041, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio19, null = 'Level')
+# data:  context2$Portfolio19
+# KPSS Level = 0.10719, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio20, null = 'Level')
+# data:  context2$Portfolio20
+# KPSS Level = 0.094104, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio21, null = 'Level')
+# data:  context2$Portfolio21
+# KPSS Level = 0.08208, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio22, null = 'Level')
+# data:  context2$Portfolio22
+# KPSS Level = 0.1912, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio23, null = 'Level')
+# data:  context2$Portfolio23
+# KPSS Level = 0.11213, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio24, null = 'Level')
+# data:  context2$Portfolio24
+# KPSS Level = 0.059791, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio25, null = 'Level')
+# data:  context2$Portfolio25
+# KPSS Level = 0.064264, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio26, null = 'Level')
+# data:  context2$Portfolio26
+# KPSS Level = 0.1446, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio27, null = 'Level')
+# data:  context2$Portfolio27
+# KPSS Level = 0.12675, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio28, null = 'Level')
+# data:  context2$Portfolio28
+# KPSS Level = 0.048096, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio29, null = 'Level')
+# data:  context2$Portfolio29
+# KPSS Level = 0.13927, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio30, null = 'Level')
+# data:  context2$Portfolio30
+# KPSS Level = 0.073821, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio31, null = 'Level')
+# data:  context2$Portfolio31
+# KPSS Level = 0.074354, Truncation lag parameter = 5, p-value = 0.1
+kpss.test(context2$Portfolio32, null = 'Level')
+# data:  context2$Portfolio32
+# KPSS Level = 0.1057, Truncation lag parameter = 5, p-value = 0.1
+
+Xdata <- context2[,2:33]
+model5 <- prcomp(Xdata)
+
+screeplot(model5,type="lines")
+summary(model5)
+model5$rotation[,1:1]
+# Portfolio1  Portfolio2  Portfolio3  Portfolio4  Portfolio5  Portfolio6  Portfolio7  Portfolio8  Portfolio9 Portfolio10 
+# 0.2541565   0.2245240   0.2039746   0.2054074   0.2272497   0.1840382   0.1667290   0.1834063   0.2091466   0.1657277 
+# Portfolio11 Portfolio12 Portfolio13 Portfolio14 Portfolio15 Portfolio16 Portfolio17 Portfolio18 Portfolio19 Portfolio20 
+# 0.1625577   0.1837929   0.2081213   0.1834372   0.1878398   0.2166064   0.2136147   0.1623779   0.1413692   0.1321410 
+# Portfolio21 Portfolio22 Portfolio23 Portfolio24 Portfolio25 Portfolio26 Portfolio27 Portfolio28 Portfolio29 Portfolio30 
+# 0.1658173   0.1430364   0.1369845   0.1347393   0.1394810   0.1218484   0.1340966   0.1429304   0.1507094   0.1298439 
+# Portfolio31 Portfolio32 
+# 0.1535412   0.1829999
+context2$factor <- model5$x[,1:1]
+head(context2$factor)
+summary(context2$factor)
+crossprod(context2$factor)/nrow(factor)
+context2$factor <- context2$factor/sqrt(var(context2$factor))
+var(context2$factor)
+data <- context2[which(context2$factor < -2.58)]
+data$Year
